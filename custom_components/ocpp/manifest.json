@@ -5,8 +5,7 @@
 		"persistent_notification"
 	],
 	"codeowners": [
-		"@lbbrhzn",
-		"@drc38"
+		"@andre-abadi"
 	],
 	"config_flow": true,
 	"documentation": "https://github.com/andre-abadi/ocpp-ocular-iq/blob/main/README.md",
