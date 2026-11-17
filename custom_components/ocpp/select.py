@@ -1,99 +1,22 @@
-################################################################################
-# Ocular POC
-################################################################################
-"""Ocular IQ controls."""
+"""Ocular IQ controls (Ocular POC).
+
+The charging-mode select, and the solar switch that switch.py adds through
+ocular.async_setup_switches. Both write to the Ocular IQ charger and show
+the state its meter reports. Detection and setup helpers are in ocular.py.
+"""
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import DeviceInfo, Entity
 
 from .chargepoint import SetVariableResult
-from .const import CONF_CPID, CONF_CPIDS, DATA_UPDATED, DOMAIN, sensor_unique_id
-
-# The Ocular IQ devices, as their BootNotification identifies them
-# (chargePointVendor / chargePointModel, kept on the device registry entry).
-OCULAR_VENDOR = "Ocular"
-OCULAR_MODEL = "IOCAH30-7SE-RW"  # the charger
-OCULAR_METER_MODEL = "M_IOCAH30-7SE-RW"  # its grid meter
-
-
-def is_ocular_charger(device) -> bool:
-    """Return whether a device registry entry is the Ocular IQ charger."""
-    return (
-        device is not None
-        and (device.manufacturer or "").strip() == OCULAR_VENDOR
-        and (device.model or "").strip() == OCULAR_MODEL
-    )
-
-
-def is_ocular_meter(device) -> bool:
-    """Return whether a device registry entry is the Ocular IQ grid meter.
-
-    Matched on the model alone: the meter's vendor has not been checked.
-    """
-    return device is not None and (device.model or "").strip() == OCULAR_METER_MODEL
-
-
-def _device_for(hass, cp_ident):
-    """Return the device registry entry of a charge point, by cpid or cp_id."""
-    return dr.async_get(hass).async_get_device(identifiers={(DOMAIN, cp_ident)})
-
-
-def find_meter_cpid(hass, entry) -> str | None:
-    """Return the cpid of the config entry's Ocular IQ meter, if it has one."""
-    for charger in entry.data[CONF_CPIDS]:
-        cpid = list(charger.values())[0][CONF_CPID]
-        if is_ocular_meter(_device_for(hass, cpid)):
-            return cpid
-    return None
-
-
-@callback
-def async_add_when_ocular(
-    hass, entry, cpid, make_entities, async_add_entities, is_match=is_ocular_charger
-):
-    """Add entities for a charge point once it is known to be an Ocular IQ device.
-
-    is_match picks the device: the charger by default, or is_ocular_meter.
-    Any other charge point gets nothing. The vendor and model come from the
-    device registry, which keeps them from the last BootNotification, so a
-    known device gets its entities at startup. One that has not booted yet
-    gets them as soon as its BootNotification fills those fields in.
-    """
-
-    def _device():
-        return _device_for(hass, cpid)
-
-    if is_match(_device()):
-        async_add_entities(make_entities())
-        return
-
-    unsub = None
-
-    @callback
-    def _on_device_update(event):
-        nonlocal unsub
-        if unsub is None or not is_match(_device()):
-            return
-        unsub()
-        unsub = None
-        async_add_entities(make_entities())
-
-    unsub = hass.bus.async_listen(
-        dr.EVENT_DEVICE_REGISTRY_UPDATED, _on_device_update
-    )
-
-    @callback
-    def _on_unload():
-        if unsub is not None:
-            unsub()
-
-    entry.async_on_unload(_on_unload)
+from .const import DATA_UPDATED, DOMAIN, sensor_unique_id
+from .ocular import async_add_when_ocular, configured_cpids, find_meter_cpid
 
 MODES = {
     "Fast": ("0", "Fast"),
@@ -242,10 +165,10 @@ class OcularSolarSwitch(OcularControl, SwitchEntity):
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
+    """Add the charging-mode select to the Ocular IQ charger."""
     central_system = hass.data[DOMAIN][entry.entry_id]
 
-    for charger in entry.data[CONF_CPIDS]:
-        cpid = list(charger.values())[0][CONF_CPID]
+    for cpid in configured_cpids(entry):
         async_add_when_ocular(
             hass,
             entry,

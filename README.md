@@ -142,6 +142,15 @@ This is a proof of concept, not a finished feature:
 - One meter per integration: if more than one charge point reports the meter model, the
   controls use the first one listed.
 
-The fork's code is marked with `# Ocular POC` banners in `const.py`, `ocppv16.py`,
-`sensor.py`, `switch.py` and `select.py` under `custom_components/ocpp/`, so it can be
-kept apart from upstream changes.
+## Where the code is
+
+The fork's code is kept apart from upstream's so that upstream changes merge cleanly. In
+`custom_components/ocpp/`:
+
+- `ocular.py` holds the Ocular logic: device detection, the meter's DataTransfer parsing,
+  and the setup of the meter sensors and the solar switch.
+- `select.py` holds the two controls, and the select platform that adds the charging-mode
+  select.
+- Upstream files carry only one-line hooks, each marked `# Ocular POC`: one in `const.py`
+  adds the select platform, and `ocppv16.py`, `sensor.py` and `switch.py` each import
+  `ocular` and make one call into it.

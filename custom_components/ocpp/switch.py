@@ -28,14 +28,8 @@ from .const import (
     ICON,
 )
 from .enums import HAChargerServices, HAChargerStatuses
+from . import ocular  # Ocular POC
 
-################################################################################
-# Ocular POC
-################################################################################
-from .select import OcularSolarSwitch, async_add_when_ocular
-################################################################################
-# Ocular POC
-################################################################################
 
 # Switch configuration definitions
 # At a minimum define switch name and on service call,
@@ -117,20 +111,6 @@ async def async_setup_entry(hass, entry, async_add_devices):
         cp_settings = list(charger.values())[0]
         cpid = cp_settings[CONF_CPID]
 
-################################################################################
-# Ocular POC
-################################################################################
-        async_add_when_ocular(
-            hass,
-            entry,
-            cpid,
-            lambda cpid=cpid: [OcularSolarSwitch(central_system, cpid)],
-            async_add_devices,
-        )
-################################################################################
-# Ocular POC
-################################################################################
-
         charger_device_id = dr.async_get_device_id_by_identifier(
             hass, (DOMAIN, cpid), config_entry_id=entry.entry_id
         )
@@ -186,6 +166,7 @@ async def async_setup_entry(hass, entry, async_add_devices):
                     )
                 )
 
+    ocular.async_setup_switches(hass, entry, central_system, async_add_devices)  # Ocular POC
     async_add_devices(entities, False)
 
 
