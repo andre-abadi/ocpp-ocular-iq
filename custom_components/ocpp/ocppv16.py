@@ -2069,10 +2069,18 @@ class ChargePoint(cp):
         """Store the grid readings an Ocular IQ meter sends as DataTransfer."""
         import json
 
+        from homeassistant.helpers import device_registry
+
+        from .select import is_ocular_meter
+
         if (
-            self.id == "Ocular-IQ-Meter"
-            and vendor_id == "IoCharger"
+            vendor_id == "IoCharger"
             and kwargs.get("message_id") == "meterValue"
+            and is_ocular_meter(
+                device_registry.async_get(self.hass).async_get_device(
+                    identifiers={(DOMAIN, self.id)}
+                )
+            )
         ):
             try:
                 payload = json.loads(kwargs["data"])

@@ -168,23 +168,34 @@ async def async_setup_entry(hass, entry, async_add_devices):
 ################################################################################
 # Ocular POC
 ################################################################################
-        if cpid == "meter":
-            for metric in (
-                "Current.Ocular.Grid",
-                "Power.Active.Ocular.Grid",
-                "Ocular.EcoMode",
-                "Ocular.SolarEnabled",
-            ):
-                entities.append(
-                    ChargePointMetric(
-                        hass,
-                        central_system,
-                        cpid,
-                        _mk_desc(metric),
-                        connector_id=None,
-                        charger_device_id=charger_device_id,
-                    )
+        from .select import async_add_when_ocular, is_ocular_meter
+
+        def _ocular_meter_sensors(cpid=cpid, charger_device_id=charger_device_id):
+            return [
+                ChargePointMetric(
+                    hass,
+                    central_system,
+                    cpid,
+                    _mk_desc(metric),
+                    connector_id=None,
+                    charger_device_id=charger_device_id,
                 )
+                for metric in (
+                    "Current.Ocular.Grid",
+                    "Power.Active.Ocular.Grid",
+                    "Ocular.EcoMode",
+                    "Ocular.SolarEnabled",
+                )
+            ]
+
+        async_add_when_ocular(
+            hass,
+            entry,
+            cpid,
+            _ocular_meter_sensors,
+            async_add_devices,
+            is_match=is_ocular_meter,
+        )
 ################################################################################
 # Ocular POC
 ################################################################################

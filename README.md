@@ -43,8 +43,10 @@ arrives, and are available only while the charger and the meter are both connect
 
 This is a proof of concept, not a finished feature:
 
-- The charge point ids are fixed in the code: the charger must be `charger` and the meter
-  `meter`, and the meter must connect as `Ocular-IQ-Meter`.
+- The fork only acts on the Ocular IQ devices, recognised by the model they report when
+  they boot: `IOCAH30-7SE-RW` (vendor `Ocular`) for the charger and `M_IOCAH30-7SE-RW`
+  for the meter. Any other charger behaves exactly as with the upstream integration.
+  Charge point ids don't matter.
 - It works with OCPP 1.6 only.
 - After you change a setting, the control keeps showing the old value until the meter
   reports the new one.

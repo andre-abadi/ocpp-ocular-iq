@@ -32,7 +32,7 @@ from .enums import HAChargerServices, HAChargerStatuses
 ################################################################################
 # Ocular POC
 ################################################################################
-from .select import OcularSolarSwitch
+from .select import OcularSolarSwitch, async_add_when_ocular
 ################################################################################
 # Ocular POC
 ################################################################################
@@ -120,8 +120,13 @@ async def async_setup_entry(hass, entry, async_add_devices):
 ################################################################################
 # Ocular POC
 ################################################################################
-        if cpid == "charger":
-            entities.append(OcularSolarSwitch(central_system, cpid))
+        async_add_when_ocular(
+            hass,
+            entry,
+            cpid,
+            lambda cpid=cpid: [OcularSolarSwitch(central_system, cpid)],
+            async_add_devices,
+        )
 ################################################################################
 # Ocular POC
 ################################################################################
