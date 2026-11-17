@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, UTC
 import hashlib
 import logging
 import math
-import json
+
 import time
 
 from homeassistant.config_entries import ConfigEntry
@@ -2053,23 +2053,21 @@ class ChargePoint(cp):
             id_tag_info={om.status: AuthorizationStatus.accepted.value}
         )
 
-#    @on(Action.data_transfer)
-#    def on_data_transfer(self, vendor_id, **kwargs):
-#        """Handle a Data transfer request."""
-#        _LOGGER.debug("Data transfer received from %s: %s", self.id, kwargs)
-#        self._metrics[0][cdet.data_transfer].value = datetime.now(tz=UTC)
-#        self._metrics[0][cdet.data_transfer].extra_attr = {vendor_id: kwargs}
-#        return call_result.DataTransfer(status=DataTransferStatus.accepted.value)
-
-################################################################################
-# Ocular POC
-################################################################################
     @on(Action.data_transfer)
     def on_data_transfer(self, vendor_id, **kwargs):
         """Handle a Data transfer request."""
         _LOGGER.debug("Data transfer received from %s: %s", self.id, kwargs)
         self._metrics[0][cdet.data_transfer].value = datetime.now(tz=UTC)
         self._metrics[0][cdet.data_transfer].extra_attr = {vendor_id: kwargs}
+        self._ocular_data_transfer(vendor_id, kwargs)  # Ocular POC
+        return call_result.DataTransfer(status=DataTransferStatus.accepted.value)
+
+################################################################################
+# Ocular POC
+################################################################################
+    def _ocular_data_transfer(self, vendor_id, kwargs):
+        """Store the grid readings an Ocular IQ meter sends as DataTransfer."""
+        import json
 
         if (
             self.id == "Ocular-IQ-Meter"
@@ -2105,7 +2103,6 @@ class ChargePoint(cp):
                 self._async_refresh_metric_entities(list(values))
             except (KeyError, IndexError, TypeError, ValueError) as err:
                 _LOGGER.warning("Invalid Ocular meterValue from %s: %s", self.id, err)
-        return call_result.DataTransfer(status=DataTransferStatus.accepted.value)
 ################################################################################
 # Ocular POC
 ################################################################################
