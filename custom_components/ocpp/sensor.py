@@ -165,6 +165,30 @@ async def async_setup_entry(hass, entry, async_add_devices):
                 )
             )
 
+################################################################################
+# Ocular POC
+################################################################################
+        if cpid == "meter":
+            for metric in (
+                "Current.Ocular.Grid",
+                "Power.Active.Ocular.Grid",
+                "Ocular.EcoMode",
+                "Ocular.SolarEnabled",
+            ):
+                entities.append(
+                    ChargePointMetric(
+                        hass,
+                        central_system,
+                        cpid,
+                        _mk_desc(metric),
+                        connector_id=None,
+                        charger_device_id=charger_device_id,
+                    )
+                )
+################################################################################
+# Ocular POC
+################################################################################
+
         if num_connectors > 1:
             for conn_id in range(1, num_connectors + 1):
                 for metric in CONNECTOR_ONLY:

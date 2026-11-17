@@ -120,7 +120,14 @@ SENSOR = "sensor"
 SWITCH = "switch"
 BUTTON = "button"
 
-PLATFORMS = [SENSOR, SWITCH, NUMBER, BUTTON]
+################################################################################
+# Ocular POC
+################################################################################
+# PLATFORMS = [SENSOR, SWITCH, NUMBER, BUTTON]
+PLATFORMS = [SENSOR, SWITCH, NUMBER, BUTTON, "select"]
+################################################################################
+# Ocular POC
+################################################################################
 
 # Ocpp supported measurands
 MEASURANDS = [

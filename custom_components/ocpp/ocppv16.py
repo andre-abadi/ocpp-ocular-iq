@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, UTC
 import hashlib
 import logging
 import math
-
+import json
 import time
 
 from homeassistant.config_entries import ConfigEntry
@@ -2053,13 +2053,62 @@ class ChargePoint(cp):
             id_tag_info={om.status: AuthorizationStatus.accepted.value}
         )
 
+#    @on(Action.data_transfer)
+#    def on_data_transfer(self, vendor_id, **kwargs):
+#        """Handle a Data transfer request."""
+#        _LOGGER.debug("Data transfer received from %s: %s", self.id, kwargs)
+#        self._metrics[0][cdet.data_transfer].value = datetime.now(tz=UTC)
+#        self._metrics[0][cdet.data_transfer].extra_attr = {vendor_id: kwargs}
+#        return call_result.DataTransfer(status=DataTransferStatus.accepted.value)
+
+################################################################################
+# Ocular POC
+################################################################################
     @on(Action.data_transfer)
     def on_data_transfer(self, vendor_id, **kwargs):
         """Handle a Data transfer request."""
         _LOGGER.debug("Data transfer received from %s: %s", self.id, kwargs)
         self._metrics[0][cdet.data_transfer].value = datetime.now(tz=UTC)
         self._metrics[0][cdet.data_transfer].extra_attr = {vendor_id: kwargs}
+
+        if (
+            self.id == "Ocular-IQ-Meter"
+            and vendor_id == "IoCharger"
+            and kwargs.get("message_id") == "meterValue"
+        ):
+            try:
+                payload = json.loads(kwargs["data"])
+                grid = payload["sampledValue"]["powerGrid"][0]
+                current = float(grid["current"][0])
+                power = float(grid["powerToGrid"])
+                eco_mode = payload["ecoMode"]
+                solar_enabled = payload["enableSolar"]
+
+                if not math.isfinite(current) or not math.isfinite(power):
+                    raise ValueError("Non-finite grid measurement")
+                if not isinstance(eco_mode, str) or not isinstance(solar_enabled, bool):
+                    raise ValueError("Invalid eco mode or solar-enabled value")
+
+                values = {
+                    "Current.Ocular.Grid": (current, "A"),
+                    "Power.Active.Ocular.Grid": (power, "W"),
+                    "Ocular.EcoMode": (eco_mode, None),
+                    "Ocular.SolarEnabled": (
+                        "Enabled" if solar_enabled else "Disabled",
+                        None,
+                    ),
+                }
+                for key, (value, unit) in values.items():
+                    self._metrics[0][key].value = value
+                    self._metrics[0][key].unit = unit
+
+                self._async_refresh_metric_entities(list(values))
+            except (KeyError, IndexError, TypeError, ValueError) as err:
+                _LOGGER.warning("Invalid Ocular meterValue from %s: %s", self.id, err)
         return call_result.DataTransfer(status=DataTransferStatus.accepted.value)
+################################################################################
+# Ocular POC
+################################################################################
 
     @on(Action.heartbeat)
     def on_heartbeat(self, **kwargs):
